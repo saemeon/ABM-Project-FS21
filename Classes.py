@@ -106,9 +106,8 @@ class ABM_MF(object):
             s_new[healthy] = [self.phi1()[healthy] > self.theta1[healthy]]
             s_new[failed]  = [self.phi2()[failed]  < self.theta2[failed]]
             
-            if np.array_equal(s_new, self.s) or np.array_equal(s_new, self.s_old): #converged or cyclic
-                if run%2 ==1:
-                    pass
+            if (np.array_equal(s_new, self.s) and (run%2 ==0)) or (np.array_equal(s_new, self.s_old)and (run%2 ==0)): #converged or cyclic
+
                 else:
                     self.s_old = self.s
                     self.s = s_new

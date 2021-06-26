@@ -67,3 +67,30 @@ def plot_stats(ax, X, X_1, cut=0.2, Contour="Xbase", xlim = 1, label = False):
     ax.grid()
     ax.set_xlim((0,xlim))
     return
+
+def double_Integral(X, Y, Z):
+    """
+    numerically integrates over X and Y weighted by Z
+    X= x-matrix
+    Y= y-matrix
+    Z= z-matrix
+    """
+    xmin = np.min(X)
+    xmax = np.max(X)
+    ymin = np.min(Y)
+    ymax = np.max(Y)
+    nx, ny = Z.shape
+    dS = ((xmax-xmin)/(nx-1)) * ((ymax-ymin)/(ny-1))
+    
+    #internal
+    Z_Internal = Z[1:-1, 1:-1]
+
+    # sides: up, down, left, right
+    (Z_u, Z_d, Z_l, Z_r) = (Z[0, 1:-1], Z[-1, 1:-1], Z[1:-1, 0], Z[1:-1, -1])
+
+    # corners
+    (Z_ul, Z_ur, Z_dl, Z_dr) = (Z[0, 0], Z[0, -1], Z[-1, 0], Z[-1, -1])
+
+    return dS * (np.sum(Z_Internal)\
+                + 0.5 * (np.sum(Z_u) + np.sum(Z_d) + np.sum(Z_l) + np.sum(Z_r))\
+                + 0.25 * (Z_ul + Z_ur + Z_dl + Z_dr))
