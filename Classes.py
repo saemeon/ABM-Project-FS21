@@ -8,7 +8,7 @@ import pickle
 
 
 class ABM(object):
-    def __init__(self,net, phi1, phi2, par, alpha = 1):
+    def __init__(self, net, par,  phi1 = "in", phi2 = "out",alpha = 1):
         mu1, sig1, mu2, sig2 = par
         self.N = net.number_of_nodes()
         self.alpha = alpha
@@ -29,7 +29,7 @@ class ABM(object):
         self.s = np.array(self.theta1 < 0)
         self.s_old = np.array(self.N*[-1])
         self.net = net
-        self.neighbors =  [list(self.net.neighbors(node)) for node in net ]
+        self.neighbors =  [list(self.net.neighbors(agent)) for agent in net ]
         self.X = [0]
     def step(self, run_num):
         for run in range(run_num):
@@ -39,18 +39,17 @@ class ABM(object):
             s_new[healthy] = [self.phi1()[healthy] > self.theta1[healthy]]
             s_new[failed]  = [self.phi2()[failed]  < self.theta2[failed]]
             
-            if np.array_equal(s_new, self.s) or np.array_equal(s_new, self.s_old): #converged or cyclic
+            if (np.array_equal(s_new, self.s) and (run%2 ==0)) or (np.array_equal(s_new, self.s_old)and (run%2 ==0)): #converged or cyclic
                 self.s_old = self.s
                 self.s = s_new
                 self.X.append(np.mean(self.s))
                 break
-                
             self.s_old = self.s
             self.s = s_new
             self.X.append(np.mean(self.s))
     def phi1_in(self):
         loc  = np.array([  np.mean(self.s[neigh]) for neigh  in self.neighbors]) 
-        glob =   np.mean(self.s)
+        glob = np.mean(self.s)
         return self.alpha*loc + (1-self.alpha)*glob
     def phi2_in(self):
         loc  = np.array([1-np.mean(self.s[neigh]) for neigh  in self.neighbors]) 
@@ -59,26 +58,26 @@ class ABM(object):
     def phi1_out(self):
         load = np.array([    self.s[i]/len(neigh) for i,neigh in enumerate(self.neighbors)])
         loc  = np.array([np.sum(load[neigh]) for neigh in self.neighbors])
-        glob =   np.mean(self.s)
+        glob = np.mean(self.s)
         return self.alpha*loc + (1-self.alpha)*glob
     def phi2_out(self):
-        load = np.array([(1-self.s[i])/len(neigh) for i,neigh in enumerate(self.neighbors)])
-        loc  = np.array([np.sum(load[neigh]) for neigh in self.neighbors])
+        supp = np.array([(1-self.s[i])/len(neigh) for i,neigh in enumerate(self.neighbors)])#how much support each agent gives to each of his failed neighbors
+        loc  = np.array([np.sum(supp[neigh]) for neigh in self.neighbors]) #how much support each agent receives from his healthy neighbors
         glob = 1-np.mean(self.s)
         return self.alpha*loc + (1-self.alpha)*glob
-    def phi1_sup(self):
+    def phi1_red(self):
         seek = np.array([(self.s[i])/(len(neigh)-np.sum(self.s[neigh])) for i,neigh in enumerate(self.neighbors)])
         loc  = np.array([np.sum(seek[neigh]) for neigh in self.neighbors])
         glob = np.sum(self.s)/(self.N-sum(self.s))
         return self.alpha*loc + (1-self.alpha)*glob
-    def phi2_sup(self):
-        supp = np.array([(1-self.s[i])/np.sum(self.s[neigh]) for i,neigh in enumerate(self.neighbors)])
+    def phi2_red(self):
+        supp = np.array([(1-self.s[i])/np.sum(self.s[neigh]) for i,neigh in enumerate(self.neighbors)]) #how much support each agent gives to each of his failed neighbors
         loc  = np.array([np.sum(supp[neigh]) for neigh in self.neighbors])
         glob = (self.N-sum(self.s))/ np.sum(self.s)
         return self.alpha*loc + (1-self.alpha)*glob
     
 class ABM_MF(object):
-    def __init__(self,N, par,  phi1 = "in", phi2 = "in",alpha = 1):
+    def __init__(self,N, par,  phi1 = "in", phi2 = "out",alpha = 1):
         mu1, sig1, mu2, sig2 = par
         self.N = N
         if phi1 == "in":
@@ -107,13 +106,10 @@ class ABM_MF(object):
             s_new[failed]  = [self.phi2()[failed]  < self.theta2[failed]]
             
             if (np.array_equal(s_new, self.s) and (run%2 ==0)) or (np.array_equal(s_new, self.s_old)and (run%2 ==0)): #converged or cyclic
-
-                else:
-                    self.s_old = self.s
-                    self.s = s_new
-                    self.X.append(np.mean(self.s))
-                    break
-                
+                self.s_old = self.s
+                self.s = s_new
+                self.X.append(np.mean(self.s))
+                break
             self.s_old = self.s
             self.s = s_new
             self.X.append(np.mean(self.s))
